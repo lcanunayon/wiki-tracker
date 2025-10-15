@@ -6,7 +6,6 @@ import pyrebase4 as pyrebase
 import sys
 st.write("Python version:", sys.version)
 st.write("Installed packages:")
-!pip freeze
 
 # -------------------------------
 # 🔥 Firebase Configuration
