@@ -3,6 +3,10 @@ from anytree import Node
 import plotly.graph_objects as go
 from datetime import datetime
 import pyrebase4 as pyrebase
+import sys
+st.write("Python version:", sys.version)
+st.write("Installed packages:")
+!pip freeze
 
 # -------------------------------
 # 🔥 Firebase Configuration
