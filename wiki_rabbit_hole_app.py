@@ -2,28 +2,48 @@ import streamlit as st
 from anytree import Node
 import plotly.graph_objects as go
 from datetime import datetime
-import pyrebase4 as pyrebase
+import firebase_admin
+from firebase_admin import credentials, db
+import json
 import sys
+
 st.write("Python version:", sys.version)
-st.write("Installed packages:")
 
 # -------------------------------
-# 🔥 Firebase Configuration
+# 🔥 Firebase Configuration (Admin SDK)
 # -------------------------------
-firebase_config = {
-  "apiKey": "AIzaSyC7YrE1G4-WqgLGH68VofcFTaijhZYCmto",
-  "authDomain": "wiki-rabbit-hole.firebaseapp.com",
-  "databaseURL": "https://wiki-rabbit-hole-default-rtdb.firebaseio.com",
-  "projectId": "wiki-rabbit-hole",
-  "storageBucket": "wiki-rabbit-hole.firebasestorage.app",
-  "messagingSenderId": "987478826073",
-  "appId": "1:987478826073:web:2ebf44d77c408a3ce16548",
-  "measurementId": "G-SBJ54V15T1"
-}
+# Load credentials from Streamlit Secrets
+firebase_config = st.secrets["FIREBASE"]
 
+# Convert to a dict for Firebase Admin SDK
+cred = credentials.Certificate(json.loads(json.dumps(firebase_config)))
 
-firebase = pyrebase.initialize_app(firebase_config)
-db = firebase.database()
+# Initialize Firebase app only once
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': 'https://wiki-rabbit-hole-default-rtdb.firebaseio.com'
+    })
+
+# Reference to your database
+ref = db.reference("/")
+
+# Example helper functions
+def save_page(user_id, page_title, parent=None, url=None):
+    data = {
+        "url": url or f"https://en.wikipedia.org/wiki/{page_title.replace(' ', '_')}",
+        "parent": parent,
+        "timestamp": datetime.now().isoformat()
+    }
+    ref.child("users").child(user_id).child("pages").child(page_title).set(data)
+
+def get_pages(user_id):
+    pages = ref.child("users").child(user_id).child("pages").get()
+    return pages or {}
+
+# Example usage (temporary testing)
+user_id = "demo_user"
+save_page(user_id, "Quantum Mechanics")
+st.write("Pages:", get_pages(user_id))
 
 # -------------------------------
 # 🌐 User Session Setup

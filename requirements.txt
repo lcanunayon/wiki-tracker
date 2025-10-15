@@ -1,4 +1,4 @@
 streamlit
 plotly
 anytree
-pyrebase4
+firebase-admin
