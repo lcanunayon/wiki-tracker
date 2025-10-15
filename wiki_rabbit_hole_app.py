@@ -2,7 +2,7 @@ import streamlit as st
 from anytree import Node
 import plotly.graph_objects as go
 from datetime import datetime
-import pyrebase
+import pyrebase4 as pyrebase
 
 # -------------------------------
 # 🔥 Firebase Configuration
