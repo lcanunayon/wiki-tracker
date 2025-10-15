@@ -1,3 +1,4 @@
 streamlit
-anytree
 plotly
+anytree
+pyrebase4
