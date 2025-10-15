@@ -7,7 +7,7 @@ import pyrebase
 # -------------------------------
 # 🔥 Firebase Configuration
 # -------------------------------
-const firebaseConfig = {
+const firebase_config = {
   apiKey: "AIzaSyC7YrE1G4-WqgLGH68VofcFTaijhZYCmto",
   authDomain: "wiki-rabbit-hole.firebaseapp.com",
   databaseURL: "https://wiki-rabbit-hole-default-rtdb.firebaseio.com",
