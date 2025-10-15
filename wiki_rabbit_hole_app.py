@@ -7,15 +7,15 @@ import pyrebase
 # -------------------------------
 # 🔥 Firebase Configuration
 # -------------------------------
-const firebase_config = {
-  apiKey: "AIzaSyC7YrE1G4-WqgLGH68VofcFTaijhZYCmto",
-  authDomain: "wiki-rabbit-hole.firebaseapp.com",
-  databaseURL: "https://wiki-rabbit-hole-default-rtdb.firebaseio.com",
-  projectId: "wiki-rabbit-hole",
-  storageBucket: "wiki-rabbit-hole.firebasestorage.app",
-  messagingSenderId: "987478826073",
-  appId: "1:987478826073:web:2ebf44d77c408a3ce16548",
-  measurementId: "G-SBJ54V15T1"
+firebase_config = {
+  "apiKey": "AIzaSyC7YrE1G4-WqgLGH68VofcFTaijhZYCmto",
+  "authDomain": "wiki-rabbit-hole.firebaseapp.com",
+  "databaseURL": "https://wiki-rabbit-hole-default-rtdb.firebaseio.com",
+  "projectId": "wiki-rabbit-hole",
+  "storageBucket": "wiki-rabbit-hole.firebasestorage.app",
+  "messagingSenderId": "987478826073",
+  "appId": "1:987478826073:web:2ebf44d77c408a3ce16548",
+  "measurementId": "G-SBJ54V15T1"
 };
 
 
