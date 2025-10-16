@@ -1,21 +1,18 @@
+import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
 import json
 
-# Load credentials from Streamlit secrets
+# -------------------------------
+# 🔥 Firebase Configuration (Admin SDK)
+# -------------------------------
+# Load credentials from Streamlit Secrets
 firebase_config = st.secrets["FIREBASE"]
-cred = credentials.Certificate(json.loads(json.dumps(firebase_config)))
-
-# ✅ Only initialize once
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://wiki-rabbit-hole-default-rtdb.firebaseio.com'
-    })
 
 # Convert to a dict for Firebase Admin SDK
 cred = credentials.Certificate(json.loads(json.dumps(firebase_config)))
 
-# Initialize Firebase app only once
+# ✅ Only initialize once
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, {
         'databaseURL': 'https://wiki-rabbit-hole-default-rtdb.firebaseio.com'
