@@ -14,6 +14,7 @@ st.write("Python version:", sys.version)
 # -------------------------------
 # Load credentials from Streamlit Secrets
 firebase_config = st.secrets["FIREBASE"]
+default_app = firebase_admin.initialize_app()
 
 # Convert to a dict for Firebase Admin SDK
 cred = credentials.Certificate(json.loads(json.dumps(firebase_config)))
