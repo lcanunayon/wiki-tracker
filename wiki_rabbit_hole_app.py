@@ -1,167 +1,103 @@
+@@ -1,26 +1,16 @@
 import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, db
+import json
+import os
+from anytree import Node, RenderTree
+import plotly.graph_objects as go
 from datetime import datetime
+import webbrowser
 
-# -------------------------------
-# 🔥 Firebase Configuration (Admin SDK)
-# -------------------------------
-# Get Firebase secrets directly
-firebase_config = dict(st.secrets["FIREBASE"])
+DATA_FILE = "wiki_history.json"
+# --- Session Setup ---
+if "data" not in st.session_state:
+    st.session_state["data"] = {"pages": {}}  # unique for each user session
 
-# ✅ Only initialize once
-if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_config)
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://wiki-rabbit-hole-default-rtdb.firebaseio.com'
-    })
+# ---- Data Management ----
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return {"pages": {}}
 
-# Reference to your database
-ref = db.reference("/")
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+data = st.session_state["data"]
 
-
-# Example helper functions
-def save_page(user_id, page_title, parent=None, url=None):
-    data = {
-        "url": url or f"https://en.wikipedia.org/wiki/{page_title.replace(' ', '_')}",
-        "parent": parent,
-        "timestamp": datetime.now().isoformat()
-    }
-    ref.child("users").child(user_id).child("pages").child(page_title).set(data)
-
-def get_pages(user_id):
-    pages = ref.child("users").child(user_id).child("pages").get()
-    return pages or {}
-
-# Example usage (temporary testing)
-user_id = "demo_user"
-save_page(user_id, "Quantum Mechanics")
-st.write("Pages:", get_pages(user_id))
-
-# -------------------------------
-# 🌐 User Session Setup
-# -------------------------------
-st.set_page_config(page_title="Wikipedia Rabbit Hole Tracker", layout="wide")
-st.title("🐇 Wikipedia Rabbit Hole Tracker")
-st.caption("Your personal Wikipedia exploration tree — automatically saved online!")
-
-if "user_id" not in st.session_state:
-    st.session_state.user_id = None
-if "pages" not in st.session_state:
-    st.session_state.pages = {}
-
-# -------------------------------
-# 🔐 Simple User Login / Signup
-# -------------------------------
-st.sidebar.header("Login or Create Session")
-user_name = st.sidebar.text_input("Enter a username to start", placeholder="e.g. angelo123")
-if st.sidebar.button("Start Session"):
-    if user_name:
-        st.session_state.user_id = user_name
-        # Load data if exists, else start fresh
-        data = db.child("users").child(user_name).get().val()
-        st.session_state.pages = data or {}
-        st.sidebar.success(f"Welcome {user_name}!")
-    else:
-        st.sidebar.error("Please enter a username")
-
-if not st.session_state.user_id:
-    st.stop()
-
-# -------------------------------
-# 🌱 Core Functions
-# -------------------------------
-def save_data():
-    db.child("users").child(st.session_state.user_id).set(st.session_state.pages)
-
+# --- Helper functions (local only) ---
 def add_page(title, parent=None, url=None):
-    pages = st.session_state.pages
-    if title not in pages:
-        pages[title] = {
-            "url": url or f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}",
-            "children": [],
-            "timestamp": datetime.now().isoformat()
-        }
-    if parent and parent in pages and title not in pages[parent]["children"]:
-        pages[parent]["children"].append(title)
-    save_data()
+    data = load_data()
+    pages = data["pages"]
 
-def build_tree():
-    pages = st.session_state.pages
-    nodes = {t: Node(t) for t in pages}
-    for title, info in pages.items():
-        for child in info["children"]:
-            if child in nodes:
-                nodes[child].parent = nodes[title]
+    if title not in pages:
+@@ -34,9 +24,6 @@ def add_page(title, parent=None, url=None):
+        if title not in pages[parent]["children"]:
+            pages[parent]["children"].append(title)
+
+    save_data(data)
+
+# ---- Build Tree ----
+def build_tree(data):
+    nodes = {}
+    for title in data["pages"]:
+@@ -46,18 +33,12 @@ def build_tree(data):
+            nodes[child].parent = nodes[title]
     return nodes
 
-def plot_tree():
-    pages = st.session_state.pages
-    if not pages:
-        st.info("No pages yet — start by adding one!")
+# ---- Plotly Tree ----
+def plot_tree(data):
+    if not data["pages"]:
+        st.info("No pages added yet.")
         return
 
-    nodes = build_tree()
-    all_children = {c for v in pages.values() for c in v["children"]}
-    roots = [t for t in pages if t not in all_children]
+    nodes = build_tree(data)
 
-    # Recursive layout (tree)
-    positions = {}
-    def layout(node, x=0, y=0, dx=2):
-        positions[node.name] = (x, y)
-        children = list(node.children)
-        n = len(children)
-        for i, child in enumerate(children):
-            layout(child, x + (i - n / 2) * dx, y - 1, dx / 1.8)
+    # Find root nodes
+    all_children = {c for v in data["pages"].values() for c in v["children"]}
+    roots = [t for t in data["pages"] if t not in all_children]
 
-    for root in roots:
-        layout(nodes[root])
-
-    edge_x, edge_y = [], []
-    for t, info in pages.items():
+    edges = []
+    for title, info in data["pages"].items():
         for child in info["children"]:
-            if child in positions:
-                x0, y0 = positions[t]
-                x1, y1 = positions[child]
-                edge_x += [x0, x1, None]
-                edge_y += [y0, y1, None]
-
+@@ -78,8 +59,7 @@ def plot_tree(data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=edge_x, y=edge_y, mode="lines", line=dict(width=1, color="#aaa")))
-    x_vals, y_vals = zip(*positions.values())
     fig.add_trace(go.Scatter(
-        x=x_vals, y=y_vals,
+        x=x,
+        y=y,
+        x=x, y=y,
         mode="markers+text",
-        text=list(positions.keys()),
-        textposition="bottom center",
-        marker=dict(size=12, color="#00cc96"),
-        hovertext=[pages[n]["url"] for n in positions.keys()],
-        hoverinfo="text"
-    ))
-
-    fig.update_layout(
-        showlegend=False,
-        xaxis=dict(showgrid=False, zeroline=False, visible=False),
-        yaxis=dict(showgrid=False, zeroline=False, visible=False),
-        plot_bgcolor="white",
-        height=600,
-        margin=dict(l=0, r=0, t=0, b=0)
+        text=labels,
+        textposition="top center",
+@@ -95,10 +75,8 @@ def plot_tree(data):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# -------------------------------
-# 🧩 Streamlit Interface
-# -------------------------------
-st.sidebar.header("Add a Wikipedia Page")
-title = st.sidebar.text_input("Page title")
-parent = st.sidebar.selectbox("Parent (optional)", [None] + list(st.session_state.pages.keys()))
-url = st.sidebar.text_input("Custom URL (optional)")
-if st.sidebar.button("Add Page"):
-    if title:
-        add_page(title, parent, url)
-        st.sidebar.success(f"Added {title}")
-    else:
-        st.sidebar.error("Please enter a title")
+# ---- Streamlit App ----
+st.title("🐇 Wikipedia Rabbit Hole Tracker")
 
-st.subheader("🌳 Your Wikipedia Tree")
-plot_tree()
+data = load_data()
+# --- App UI ---
+st.title("🐇 Wikipedia Rabbit Hole Tracker (Your Personal Session)")
+
+st.subheader("➕ Add a Page")
+with st.form("add_page_form"):
+@@ -109,16 +87,13 @@ def plot_tree(data):
+    if submitted and title:
+        add_page(title, parent, url)
+        st.success(f"Added: {title}")
+        st.rerun()
+
+st.subheader("🌳 Your Exploration Tree")
+st.subheader("🌳 Your Personal Exploration Tree")
+plot_tree(data)
+
+st.subheader("📖 Page Details")
+if data["pages"]:
+    selected = st.selectbox("Select a page", list(data["pages"].keys()))
+    page = data["pages"][selected]
+    st.markdown(f"**URL:** [{page['url']}]({page['url']})")
+    st.write(f"Visited: {page['timestamp']}")
+    if st.button("Open in browser"):
+        webbrowser.open(page["url"])
+    st.write(f"Visited: {page['timestamp']}")
