@@ -1,5 +1,6 @@
 https://wiki-tracker-9pe9nwanjyz9n9gwrmraxt.streamlit.app/ <- link
 Vibe Coded as part of Vide Code Class CSC 29 at DEPAUL.
+Can be used for other stuff other than wiki, youtube videos, articles, etc.
 
 Prompts: 
 make a python app for tracking wikipedia pages visited, and be able to make a tree / hierachy of wikipedia pages visited so you can keep track of rabit holes in certain subjects
