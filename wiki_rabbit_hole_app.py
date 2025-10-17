@@ -1,102 +1,90 @@
 import streamlit as st
 import json
-import os
 from anytree import Node, RenderTree
 import plotly.graph_objects as go
 from datetime import datetime
-import webbrowser
 
-DATA_FILE = "wiki_history.json"
-# --- Session Setup ---
+st.set_page_config(page_title="Wikipedia Rabbit Hole Tracker", layout="wide")
+
+# ---- Session Setup ----
 if "data" not in st.session_state:
-    st.session_state["data"] = {"pages": {}}  # unique for each user session
+    st.session_state["data"] = {"pages": {}}
 
-# ---- Data Management ----
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    return {"pages": {}}
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
 data = st.session_state["data"]
 
-# --- Helper functions (local only) ---
+# ---- Helper Functions ----
 def add_page(title, parent=None, url=None):
-    data = load_data()
     pages = data["pages"]
-
     if title not in pages:
-@@ -34,9 +24,6 @@ def add_page(title, parent=None, url=None):
+        pages[title] = {
+            "url": url or "",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "children": []
+        }
+    if parent and parent in pages:
         if title not in pages[parent]["children"]:
             pages[parent]["children"].append(title)
 
-    save_data(data)
-
-# ---- Build Tree ----
 def build_tree(data):
-    nodes = {}
-    for title in data["pages"]:
-@@ -46,18 +33,12 @@ def build_tree(data):
+    nodes = {t: Node(t) for t in data["pages"]}
+    for title, info in data["pages"].items():
+        for child in info["children"]:
             nodes[child].parent = nodes[title]
     return nodes
 
-# ---- Plotly Tree ----
 def plot_tree(data):
     if not data["pages"]:
         st.info("No pages added yet.")
         return
 
     nodes = build_tree(data)
-
-    # Find root nodes
     all_children = {c for v in data["pages"].values() for c in v["children"]}
     roots = [t for t in data["pages"] if t not in all_children]
 
-    edges = []
+    # Build simple coordinate layout
+    labels = list(data["pages"].keys())
+    x = list(range(len(labels)))
+    y = [-i for i in range(len(labels))]
+    edge_x, edge_y = [], []
+
     for title, info in data["pages"].items():
         for child in info["children"]:
-@@ -78,8 +59,7 @@ def plot_tree(data):
+            edge_x += [x[labels.index(title)], x[labels.index(child)], None]
+            edge_y += [y[labels.index(title)], y[labels.index(child)], None]
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=edge_x, y=edge_y, mode="lines", line=dict(width=1, color="#aaa")))
     fig.add_trace(go.Scatter(
-        x=x,
-        y=y,
         x=x, y=y,
         mode="markers+text",
         text=labels,
         textposition="top center",
-@@ -95,10 +75,8 @@ def plot_tree(data):
-    )
+        marker=dict(size=10, color="#4CAF50")
+    ))
+    fig.update_layout(showlegend=False, xaxis=dict(visible=False), yaxis=dict(visible=False))
     st.plotly_chart(fig, use_container_width=True)
 
-# ---- Streamlit App ----
+# ---- Streamlit UI ----
 st.title("🐇 Wikipedia Rabbit Hole Tracker")
-
-data = load_data()
-# --- App UI ---
-st.title("🐇 Wikipedia Rabbit Hole Tracker (Your Personal Session)")
 
 st.subheader("➕ Add a Page")
 with st.form("add_page_form"):
-@@ -109,16 +87,13 @@ def plot_tree(data):
+    title = st.text_input("Page Title")
+    parent = st.selectbox("Parent Page (optional)", [""] + list(data["pages"].keys()))
+    url = st.text_input("Wikipedia URL (optional)")
+    submitted = st.form_submit_button("Add Page")
     if submitted and title:
-        add_page(title, parent, url)
+        add_page(title, parent if parent else None, url)
         st.success(f"Added: {title}")
         st.rerun()
 
-st.subheader("🌳 Your Exploration Tree")
 st.subheader("🌳 Your Personal Exploration Tree")
 plot_tree(data)
 
-st.subheader("📖 Page Details")
 if data["pages"]:
+    st.subheader("📖 Page Details")
     selected = st.selectbox("Select a page", list(data["pages"].keys()))
     page = data["pages"][selected]
-    st.markdown(f"**URL:** [{page['url']}]({page['url']})")
-    st.write(f"Visited: {page['timestamp']}")
-    if st.button("Open in browser"):
-        webbrowser.open(page["url"])
+    if page["url"]:
+        st.markdown(f"**URL:** [{page['url']}]({page['url']})")
     st.write(f"Visited: {page['timestamp']}")
